@@ -1,3 +1,7 @@
+# CRITICAL: Monkey patch MUST be at the very top
+import eventlet
+eventlet.monkey_patch()
+
 import os
 import time
 import random
@@ -10,13 +14,13 @@ from models import db, Fan
 from fan_agent import FanAgent
 from analytics_agent import AnalyticsAgent
 
-# Set static folder to 'dist' directory which is in the same folder in the container
+# Setup Flask
 app = Flask(__name__, static_folder='dist', static_url_path='/')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///fanpulse.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 CORS(app)
-# Important: async_mode='eventlet' for production with gunicorn
+# Use eventlet as the async mode
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 db.init_app(app)
 
@@ -30,7 +34,7 @@ with app.app_context():
         db.session.add(Fan(username="You", xp=1200, streak=3, rank=1245))
         db.session.commit()
 
-# --- ROUTES FOR REACT SERVING ---
+# --- ROUTES ---
 @app.route('/')
 def serve_index():
     return send_from_directory(app.static_folder, 'index.html')
@@ -39,59 +43,68 @@ def serve_index():
 def serve_static(path):
     if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
-    else:
-        return send_from_directory(app.static_folder, 'index.html')
+    return send_from_directory(app.static_folder, 'index.html')
 
-# --- MATCH LOGIC ---
-match_state = {
-    "team1": {"name": "Mumbai Indians", "score": 124, "wickets": 4, "overs": 15.0},
-    "team2": {"name": "Chennai Super Kings", "score": 184, "wickets": 5, "overs": 20.0},
-    "current_over": 15, "current_ball": 1
-}
-
-def trigger_major_event(event_type, description):
-    global match_state
-    hype = ai_service.generate_insight(match_state)
-    pro_insight = analytics_agent.get_tactical_breakdown(match_state)
-    poll = ai_service.generate_poll(match_state)
-    socketio.emit('major_event', {
-        "type": event_type, "description": description,
-        "hype": hype, "pro_insight": pro_insight, "poll": poll
-    })
-
+# --- SIMULATOR ---
 def match_simulator():
     with app.app_context():
-        global match_state
-        ball_count = 1
+        # Match state for simulation
+        state = {
+            "team1": {"name": "Mumbai Indians", "score": 124, "wickets": 4, "overs": 15.0},
+            "team2": {"name": "Chennai Super Kings", "score": 184, "wickets": 5, "overs": 20.0},
+            "current_over": 15, "current_ball": 1
+        }
+        
         while True:
             time.sleep(10)
-            if random.random() < 0.1:
-                match_state["team1"]["wickets"] += 1
-                trigger_major_event("WICKET", f"WICKET! Big blow for MI.")
-            else:
-                runs = random.choice([0, 1, 2, 4, 6])
-                match_state["team1"]["score"] += runs
-                if runs >= 4:
-                    trigger_major_event("BOUNDARY", f"{runs} RUNS! Spectacular shot.")
-            if ball_count == 6:
-                match_state["current_over"] += 1
-                ball_count = 1
-            else:
-                ball_count += 1
-            match_state["team1"]["overs"] = float(f"{match_state['current_over']}.{ball_count}")
-            socketio.emit('score_update', match_state)
+            # Update score
+            state["team1"]["score"] += random.randint(0, 6)
+            socketio.emit('score_update', state)
             
+            # Engagement agent check
             user = Fan.query.filter_by(username="You").first()
             if user:
-                challenge = fan_agent.evaluate_engagement(user.to_dict(), match_state)
+                challenge = fan_agent.evaluate_engagement(user.to_dict(), state)
                 if challenge and random.random() < 0.3:
                     socketio.emit('agentic_challenge', challenge)
 
-# Start simulator thread immediately
-sim_thread = threading.Thread(target=match_simulator)
-sim_thread.daemon = True
-sim_thread.start()
+# --- SOCKET EVENTS ---
+@socketio.on('connect')
+def handle_connect():
+    with app.app_context():
+        user = Fan.query.filter_by(username="You").first()
+        emit('init_user', user.to_dict())
+        # Emit initial score state
+        emit('score_update', {
+            "team1": {"name": "Mumbai Indians", "score": 124, "wickets": 4, "overs": 15.0},
+            "team2": {"name": "Chennai Super Kings", "score": 184, "wickets": 5, "overs": 20.0},
+            "current_over": 15, "current_ball": 1
+        })
+
+@socketio.on('submit_prediction')
+def handle_prediction(data):
+    with app.app_context():
+        is_correct = random.random() > 0.4
+        user = Fan.query.filter_by(username="You").first()
+        if is_correct:
+            user.xp += 50
+            user.streak += 1
+            db.session.commit()
+            emit('prediction_result', {"correct": True, "xp_gained": 50, "new_streak": user.streak, "new_xp": user.xp})
+        else:
+            user.streak = 0
+            db.session.commit()
+            emit('prediction_result', {"correct": False, "new_streak": 0, "new_xp": user.xp})
+
+@socketio.on('send_reaction')
+def handle_reaction(data):
+    emit('broadcast_reaction', data, broadcast=True)
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port, debug=False)
+    # Start simulator thread
+    sim_thread = threading.Thread(target=match_simulator)
+    sim_thread.daemon = True
+    sim_thread.start()
+    
+    port = int(os.environ.get('PORT', 8080))
+    socketio.run(app, host='0.0.0.0', port=port)

@@ -2,8 +2,6 @@
 
 FanPulse is a state-of-the-art second-screen application designed to transform passive sports viewing into an active, immersive interaction. It leverages Agentic AI, Real-Time WebSockets, and Domain-Specific LLMs to engage fans like never before.
 
-## 🚀 Live Demo
-**GitHub Repository:** [https://github.com/Nagaraj1399/Premier-League-1](https://github.com/Nagaraj1399/Premier-League-1)
 
 ## ✨ Key Features
 - **Agentic AI Challenges**: Autonomous AI agents that challenge fans with "Double or Nothing" predictions.
