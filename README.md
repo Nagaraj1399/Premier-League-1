@@ -1,16 +1,46 @@
-# React + Vite
+# FanPulse: Agentic AI Second-Screen Sports Experience
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+FanPulse is a state-of-the-art second-screen application designed to transform passive sports viewing into an active, immersive interaction. It leverages Agentic AI, Real-Time WebSockets, and Domain-Specific LLMs to engage fans like never before.
 
-Currently, two official plugins are available:
+## 🚀 Live Demo
+**GitHub Repository:** [https://github.com/Nagaraj1399/Premier-League-1](https://github.com/Nagaraj1399/Premier-League-1)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ✨ Key Features
+- **Agentic AI Challenges**: Autonomous AI agents that challenge fans with "Double or Nothing" predictions.
+- **Pro Analytics**: Domain-specific tactical insights from a "Senior Strategist" AI persona.
+- **Real-Time Sync**: Ball-by-ball updates and social reaction broadcasting via WebSockets.
+- **Persistent Gamification**: XP tracking, streaks, and global leaderboards stored in a SQLite database.
+- **Premium UI**: Dark-mode aesthetic with confetti rewards and glassmorphism.
 
-## React Compiler
+## 🛠️ Technical Stack
+- **Frontend**: React 18, Vite, Framer Motion, Socket.io-client.
+- **Backend**: Python 3.11, Flask, Flask-SocketIO, SQLAlchemy, Google Generative AI (Gemini).
+- **Deployment**: Dockerized, ready for Google Cloud Run.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 📦 How to Run Locally
+1. **Clone the repo:**
+   ```bash
+   git clone https://github.com/Nagaraj1399/Premier-League-1.git
+   cd Premier-League-1
+   ```
+2. **Setup Backend:**
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   python app.py
+   ```
+3. **Setup Frontend:**
+   ```bash
+   npm install
+   npm run dev
+   ```
+4. **Access:** `http://localhost:5173`
 
-## Expanding the ESLint configuration
+## ☁️ Deployment
+The project includes a `Dockerfile` for easy deployment to Google Cloud Run. 
+```bash
+gcloud run deploy fanpulse --source .
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+*Built with ❤️ for the 2026 Sports Engagement Challenge.*
