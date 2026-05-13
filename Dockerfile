@@ -6,7 +6,7 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# Stage 2: Build Backend
+# Stage 2: Final Image
 FROM python:3.11-slim
 WORKDIR /app
 
@@ -22,13 +22,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend source
 COPY backend/ .
 
-# Copy built frontend from Stage 1
+# Copy built frontend from Stage 1 into the backend folder's 'dist' subfolder
 COPY --from=frontend-builder /app/dist /app/dist
 
-# Expose port
+# Cloud Run environment
 ENV PORT 8080
 EXPOSE 8080
 
-# Command to run the application
-# We use eventlet worker for WebSocket support
-CMD ["gunicorn", "--worker-class", "eventlet", "-w", "1", "--bind", "0.0.0.0:8080", "app:app"]
+# Run with python directly for maximum port binding reliability
+CMD ["python", "app.py"]
